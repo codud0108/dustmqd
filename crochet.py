@@ -1,24 +1,22 @@
 import streamlit as st
 import pandas as pd
 
-# 1. 페이지 설정 및 디자인
+# 1. 페이지 설정
 st.set_page_config(
-    page_title="코바늘 도안 빌더 & 영상 사전", 
+    page_title="코바늘 블록 도안 빌더", 
     page_icon="🧶", 
     layout="wide"
 )
 
-# [수정] unsafe_allow_html로 인해 최신 파이썬에서 에러가 나던 마크다운 제거
-st.title("🧶 코바늘 영문 도안 번역 & 영상 연동 빌더")
-st.write("영어 코바늘 용어를 배우고 영상을 보며 학습하세요! 나만의 도안을 조합하고 관리할 수 있습니다.")
+st.title("🧶 코바늘 영문 도안 번역 & 블록형 빌더")
+st.write("도안을 블록 형태로 쌓고, 추가된 단계를 언제든 자유롭게 수정하거나 삭제해 보세요!")
 
-# --- 데이터 정의 (코바늘 전용 데이터셋 + 유튜브 영상 링크 추가) ---
+# --- 데이터 정의 (코바늘 데이터셋) ---
 crochet_data = {
     "약어 (US)": ["ch", "sc", "hdc", "dc", "tr", "sl st", "inc", "dec/tog", "st(s)", "sp"],
     "원어 (Full Term)": ["Chain", "Single Crochet", "Half Double Crochet", "Double Crochet", "Treble Crochet", "Slip Stitch", "Increase", "Decrease / Together", "Stitch(es)", "Space"],
     "영국식 (UK)": ["ch", "dc (Double)", "htr (Half Treble)", "tr (Treble)", "dtr (Double Treble)", "ss", "inc", "dec", "st(s)", "sp"],
     "한국어 뜻": ["사슬뜨기", "짧은뜨기", "긴뜨기", "한길 긴뜨기", "두길 긴뜨기", "빼뜨기", "코늘리기 (한 코에 두 코)", "코줄이기 (모아뜨기)", "코 (Stitch)", "사슬로 생긴 공간"],
-    "일본식 기호": ["◯ / ㆍ", "X / +", "T", "mp[F]", "mp[E]", "●", "V", "A", "-", "-"],
     "영상 튜토리얼 (YouTube)": [
         "https://www.youtube.com/results?search_query=crochet+chain+stitch",
         "https://www.youtube.com/results?search_query=crochet+single+crochet",
@@ -34,7 +32,6 @@ crochet_data = {
 }
 df_crochet = pd.DataFrame(crochet_data)
 
-# 미국식 ↔ 영국식 변환용 딕셔너리 사전 매핑
 us_to_uk_dict = {
     "sc": "dc", "hdc": "htr", "dc": "tr", "tr": "dtr", "sl st": "ss",
     "Single Crochet": "Double Crochet", "Half Double Crochet": "Half Treble Crochet",
@@ -44,15 +41,13 @@ uk_to_us_dict = {v: k for k, v in us_to_uk_dict.items()}
 
 
 # --- 탭 구성 ---
-tab1, tab2, tab3 = st.tabs(["📚 코바늘 용어 & 영상 사전", "🔄 US ↔ UK 도안 변환기", "🛠️ 코바늘 도안 빌더"])
+tab1, tab2, tab3 = st.tabs(["📚 코바늘 용어 & 영상 사전", "🔄 US ↔ UK 도안 변환기", "🛠️ 블록형 도안 빌더"])
 
 
 # --- 탭 1: 용어 사전 ---
 with tab1:
     st.subheader("🔍 코바늘 영문 기호 & 영상 검색")
-    st.write("약어를 검색하고 오른쪽 끝의 **유튜브 링크**를 클릭해 뜨는 방법을 영상으로 직접 확인해 보세요!")
-    
-    search_query = st.text_input("찾고 싶은 약어나 단어를 입력하세요 (예: sc, 한길 긴뜨기):", key="search")
+    search_query = st.text_input("찾고 싶은 약어나 단어를 입력하세요:", key="search")
     
     if search_query:
         filtered_df = df_crochet[
@@ -60,110 +55,123 @@ with tab1:
             df_crochet['영국식 (UK)'].str.contains(search_query, case=False) |
             df_crochet['한국어 뜻'].str.contains(search_query, case=False)
         ]
-        st.data_editor(
-            filtered_df, 
-            use_container_width=True, 
-            hide_index=True,
-            column_config={"영상 튜토리얼 (YouTube)": st.column_config.LinkColumn("📺 영상 보기", display_text="유튜브 영상 보기")}
-        )
+        st.data_editor(filtered_df, use_container_width=True, hide_index=True,
+                       column_config={"영상 튜토리얼 (YouTube)": st.column_config.LinkColumn("📺 영상 보기", display_text="유튜브 영상 보기")})
     else:
-        st.data_editor(
-            df_crochet, 
-            use_container_width=True, 
-            hide_index=True,
-            column_config={"영상 튜토리얼 (YouTube)": st.column_config.LinkColumn("📺 영상 보기", display_text="유튜브 영상 보기")}
-        )
+        st.data_editor(df_crochet, use_container_width=True, hide_index=True,
+                       column_config={"영상 튜토리얼 (YouTube)": st.column_config.LinkColumn("📺 영상 보기", display_text="유튜브 영상 보기")})
 
 
 # --- 탭 2: US ↔ UK 변환기 ---
 with tab2:
     st.subheader("🔄 미국식 ↔ 영국식 도안 자동 번역기")
-    st.info("💡 코바늘은 미국식과 영국식 약어가 달라 헷갈리기 쉽습니다! 전체 서술형 도안 텍스트를 통째로 바꾸어 줍니다.")
-    
     direction = st.radio("변환 방향 선택", ["미국식(US) ➡️ 영국식(UK)", "영국식(UK) ➡️ 미국식(US)"])
-    
-    input_text = st.text_area("영어 도안 텍스트를 여기에 붙여넣으세요:", height=200, 
-                              placeholder="예시: Rnd 1: 6 sc in magic ring\nRnd 2: inc in every st (12 sts)")
+    input_text = st.text_area("영어 도안 텍스트를 여기에 붙여넣으세요:", height=150)
     
     if st.button("🪄 변환하기"):
         if input_text:
             converted_text = input_text
             mapping = us_to_uk_dict if "미국식(US) ➡️ 영국식(UK)" in direction else uk_to_us_dict
-            
             for key, value in mapping.items():
                 converted_text = converted_text.replace(f" {key} ", f" **{value}** ")
                 converted_text = converted_text.replace(f" {key}\n", f" **{value}**\n")
                 converted_text = converted_text.replace(f": {key} ", f": **{value}** ")
                 converted_text = converted_text.replace(f" {key.capitalize()} ", f" **{value.capitalize()}** ")
-            
-            st.markdown("### 📋 변환된 도안 (변경된 부분은 두껍게 표시됩니다)")
+            st.markdown("### 📋 변환된 도안")
             st.markdown(converted_text)
-        else:
-            st.warning("텍스트를 먼저 입력해주세요.")
 
 
-# --- 탭 3: 코바늘 도안 빌더 ---
+# --- 탭 3: 블록형 도안 빌더 (핵심 업데이트) ---
 with tab3:
-    st.subheader("📝 단별/라운드별 도안 제작기")
-    st.write("선택 상자를 이용해 매 단(Row) 또는 라운드(Rnd)의 규칙을 조합해 보세요.")
-    
-    if "crochet_steps" not in st.session_state:
-        st.session_state.crochet_steps = []
+    st.subheader("📝 블록형 도안 제작 및 실시간 수정")
+    st.write("💡 아래에서 단계를 추가한 후, **생성된 테이블 블록의 칸을 더블클릭**하면 도안을 바로 수정할 수 있습니다!")
 
-    # 입력 레이아웃 구획 나누기
-    col1, col2, col3, col4 = st.columns([1, 1.5, 1, 1.5])
+    # 세션 상태에 딕셔너리 리스트 구조로 도안 저장 (표 형태로 변환하기 위함)
+    if "pattern_blocks" not in st.session_state:
+        st.session_state.pattern_blocks = []
+
+    # 1. 도안 단계 입력창
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 1.5, 1, 1.5])
     
     with col1:
-        type_select = st.selectbox("구분", ["Rnd (라운드)", "Row (단)"])
-        num_select = st.number_input("번호", min_value=1, value=1, step=1)
-        
+        type_select = st.selectbox("구분", ["Rnd", "Row"])
     with col2:
+        num_select = st.number_input("번호", min_value=1, value=1, step=1)
+    with col3:
         stitch_options = df_crochet["약어 (US)"].tolist() + ["직접 입력"]
         stitch_select = st.selectbox("스티치 기호", stitch_options)
         if stitch_select == "직접 입력":
             stitch_select = st.text_input("스티치 직접 입력:")
-            
-    with col3:
-        times_select = st.number_input("반복/코 수", min_value=1, value=1, step=1)
-        
     with col4:
-        total_sts = st.text_input("해당 단 완성 후 총 코 수 (선택사항)", placeholder="예: 12 sts")
+        times_select = st.number_input("반복 횟수", min_value=1, value=1, step=1)
+    with col5:
+        total_sts = st.text_input("총 코 수 (선택)", placeholder="예: 12 sts")
 
-    # 스티치 기호를 고르면 화면에 해당 기호의 한국어 뜻과 영상 링크를 힌트로 제공
-    if stitch_select != "직접 입력":
+    # 영상 힌트 링크
+    if stitch_select in df_crochet["약어 (US)"].tolist():
         row_info = df_crochet[df_crochet["약어 (US)"] == stitch_select].iloc[0]
-        # [수정] 복잡한 HTML 하이퍼링크 대신 안전한 마크다운 문법으로 변경
-        st.markdown(f"💡 **선택한 기호 정보:** {row_info['한국어 뜻']} ({row_info['원어 (Full Term)']}) | [🎥 뜨개 방법 유튜브 영상 열기]({row_info['영상 튜토리얼 (YouTube)']})")
+        st.markdown(f"💡 **기호 힌트:** {row_info['한국어 뜻']} | [🎥 영상 학습 하기]({row_info['영상 튜토리얼 (YouTube)']})")
 
-    # 버튼을 눌러 리스트에 기록 추가
-    if st.button("➕ 도안에 이 단계 추가하기"):
-        prefix = "Rnd" if "Rnd" in type_select else "Row"
-        step_str = f"{prefix} {num_select}: {stitch_select} {times_select}번 반복"
-        if total_sts:
-            step_str += f" ({total_sts})"
-            
-        st.session_state.crochet_steps.append(step_str)
-        st.success(f"추가됨 ➡️ {step_str}")
+    # 단계 추가 버튼
+    if st.button("➕ 도안에 블록 추가"):
+        new_block = {
+            "구분": type_select,
+            "번호": num_select,
+            "스티치": stitch_select,
+            "반복 횟수": times_select,
+            "총 코 수": total_sts if total_sts else ""
+        }
+        st.session_state.pattern_blocks.append(new_block)
+        st.success("블록이 추가되었습니다!")
 
-    # 현재 조립된 도안 출력 섹션
+    # 2. 블록 출력 및 실시간 수정 영역
     st.markdown("---")
-    st.markdown("### 📜 내가 만든 코바늘 도안 출력")
-    
-    if st.session_state.crochet_steps:
-        final_pattern_text = "\n".join(st.session_state.crochet_steps)
-        st.code(final_pattern_text, language="text")
+    st.markdown("### 📊 작성된 도안 블록 리스트")
+
+    if st.session_state.pattern_blocks:
+        # 리스트 데이터를 데이터프레임으로 변환
+        df_pattern = pd.DataFrame(st.session_state.pattern_blocks)
         
+        # [핵심] st.data_editor를 사용하여 사용자가 표 안에서 직접 텍스트 수정 가능하게 만듦
+        edited_df = st.data_editor(
+            df_pattern,
+            use_container_width=True,
+            num_rows="dynamic",  # 사용자가 맨 밑 빈칸을 통해 행을 추가하거나 행을 선택해 Delete 키로 삭제 가능
+            column_config={
+                "구분": st.column_config.SelectboxColumn("구분", options=["Rnd", "Row"], required=True),
+                "스티치": st.column_config.SelectboxColumn("스티치", options=df_crochet["약어 (US)"].tolist() + ["직접 입력"])
+            }
+        )
+        
+        # 사용자가 수정한 데이터를 세션 상태에 즉시 반영
+        st.session_state.pattern_blocks = edited_df.to_dict(orient="records")
+
+        # 3. 최종 텍스트 프리뷰 및 파일 다운로드
+        st.markdown("### 📜 최종 텍스트 도안 미리보기")
+        final_lines = []
+        for b in st.session_state.pattern_blocks:
+            # 딕셔너리 데이터 유효성 검사 (삭제된 행 방지)
+            if pd.isna(b.get("구분")) or b.get("구분") is None:
+                continue
+            sts_part = f" ({b['총 코 수']})" if b.get('총 코 수') else ""
+            line = f"{b['구분']} {int(b['번호'])}: {b['스티치']} {int(b['반복 횟'])}times{sts_part}"
+            final_lines.append(line)
+        
+        final_text = "\n".join(final_lines)
+        st.code(final_text, language="text")
+
+        # 파일 다운로드 및 초기화 버튼
         btn_col1, btn_col2 = st.columns(2)
         with btn_col1:
             st.download_button(
-                label="💾 파일로 내보내기 (.txt)",
-                data=final_pattern_text,
-                file_name="my_crochet_pattern.txt",
+                label="💾 완성된 도안 다운로드 (.txt)",
+                data=final_text,
+                file_name="my_block_pattern.txt",
                 mime="text/plain"
             )
         with btn_col2:
-            if st.button("🗑️ 전체 도안 삭제 (초기화)"):
-                st.session_state.crochet_steps = []
+            if st.button("🗑️ 전체 블록 초기화"):
+                st.session_state.pattern_blocks = []
                 st.rerun()
     else:
-        st.info("오른쪽 위의 입력창에서 단계를 조합한 후 '추가하기' 버튼을 누르면 여기에 도안이 쌓입니다.")
+        st.info("추가된 도안 블록이 없습니다. 위에서 스티치를 조합해 블록을 추가해 보세요!")
